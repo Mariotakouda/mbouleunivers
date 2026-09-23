@@ -1,0 +1,1 @@
+<x-errors-layout code="410" heading="Réservation expirée" text="Le délai pour payer cette commande est dépassé et les places ont été libérées. Vous pouvez recommencer votre réservation en quelques secondes." />

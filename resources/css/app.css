@@ -1,0 +1,140 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/figtree';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ * Identité visuelle « Univers 2 M'boulè »
+ * Une salle de spectacle : rideau indigo (nuit) + projecteur ambre (safran).
+ */
+@theme {
+    --font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Noto Color Emoji';
+    --font-display: 'Bricolage Grotesque Variable', 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --color-nuit: #221a4c;
+    --color-minuit: #140e31;
+    --color-safran: #f6a21e;
+    --color-safran-vif: #e8930c;
+    --color-craie: #f6f5fa;
+    --color-bord: #e3e0ee;
+    --color-sourdine: #625e80;
+    --color-succes: #17805a;
+    --color-alerte: #b45309;
+    --color-erreur: #c8323c;
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        @apply bg-craie font-sans text-nuit antialiased;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+    }
+
+    :focus-visible {
+        outline: 3px solid var(--color-safran);
+        outline-offset: 2px;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+@layer components {
+    /* ---------- Boutons ---------- */
+    .btn {
+        @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-2 text-base font-semibold
+            transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply bg-safran text-nuit shadow-sm hover:bg-safran-vif;
+    }
+    .btn-dark {
+        @apply bg-nuit text-white hover:bg-minuit;
+    }
+    .btn-ghost {
+        @apply border border-bord bg-white text-nuit hover:bg-craie;
+    }
+    .btn-danger {
+        @apply bg-erreur text-white hover:bg-red-700;
+    }
+    .btn-success {
+        @apply bg-succes text-white hover:bg-emerald-800;
+    }
+    .btn-sm {
+        @apply min-h-9 rounded-lg px-3 py-1 text-sm;
+    }
+    .btn-lg {
+        @apply min-h-14 px-7 text-lg;
+    }
+
+    /* ---------- Surfaces ---------- */
+    .card {
+        @apply rounded-2xl border border-bord bg-white;
+    }
+
+    /* ---------- Formulaires ---------- */
+    .label {
+        @apply mb-1.5 block text-sm font-semibold text-nuit;
+    }
+    .hint {
+        @apply mt-1.5 text-sm text-sourdine;
+    }
+    .input {
+        @apply block min-h-12 w-full rounded-xl border border-bord bg-white px-4 py-2 text-base text-nuit
+            placeholder:text-sourdine/60 focus:border-nuit focus:outline-none focus:ring-4 focus:ring-safran/30;
+    }
+    textarea.input {
+        @apply min-h-28 py-3;
+    }
+    .input-invalid {
+        @apply border-erreur focus:border-erreur focus:ring-erreur/20;
+    }
+    .field-error {
+        @apply mt-1.5 flex items-start gap-1.5 text-sm font-medium text-erreur;
+    }
+
+    /* ---------- Tableaux d'administration ---------- */
+    .tbl {
+        /* « relative » : les libellés .sr-only (position absolute) restent dans le tableau au lieu de créer un défilement horizontal de la page. */
+        @apply relative w-full text-left text-sm;
+    }
+    .tbl thead th {
+        @apply whitespace-nowrap bg-craie px-4 py-3 text-xs font-semibold text-sourdine;
+    }
+    .tbl tbody td {
+        @apply border-t border-bord px-4 py-3 align-middle;
+    }
+    .tbl tbody tr:hover td {
+        @apply bg-craie/60;
+    }
+
+    /* ---------- Décor : scène + projecteur ---------- */
+    .stage {
+        background-color: var(--color-nuit);
+        background-image:
+            radial-gradient(48rem 26rem at 88% -8%, rgb(246 162 30 / 0.24), transparent 65%),
+            radial-gradient(30rem 20rem at -5% 110%, rgb(120 90 220 / 0.22), transparent 70%);
+    }
+}
