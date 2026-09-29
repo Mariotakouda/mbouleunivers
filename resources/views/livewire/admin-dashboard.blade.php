@@ -5,7 +5,7 @@
     $kpis = [
         ['Billets vendus', $sold, 'ticket', 'bg-indigo-50 text-indigo-700'],
         ['Places restantes', $stats['available_tickets'], 'users', 'bg-emerald-50 text-succes'],
-        ['Réservations en attente', $stats['reserved_orders'], 'clock', 'bg-amber-50 text-alerte'],
+        ['Commandes à traiter', $stats['reserved_orders'], 'clock', 'bg-amber-50 text-alerte'],
         ['Entrées scannées', $stats['entries'], 'qr', 'bg-sky-50 text-sky-700'],
     ];
 @endphp
@@ -13,14 +13,14 @@
     {{-- Chiffre d'affaires + avancement des ventes --}}
     <div class="stage grid gap-6 rounded-2xl p-6 text-white md:grid-cols-[1fr_1.2fr] md:items-center md:p-8">
         <div>
-            <p class="flex items-center gap-2 text-sm font-medium text-white/75"><x-ui.icon name="banknote" class="size-5 text-safran" /> Chiffre d'affaires</p>
+            <p class="flex items-center gap-2 text-sm font-medium text-white/75"><x-ui.icon name="banknote" class="size-5 text-safran" /> Paiements encaissés</p>
             <p class="mt-2 font-display text-4xl font-extrabold leading-none sm:text-5xl">
                 {{ number_format($stats['revenue'], 0, ',', ' ') }} <span class="text-xl font-bold text-white/70">FCFA</span>
             </p>
             <p class="mt-3 text-sm text-white/70">
-                {{ $stats['payments_successful'] }} {{ $stats['payments_successful'] > 1 ? 'paiements réussis' : 'paiement réussi' }}
-                @if ($stats['payments_failed'] > 0)
-                    · <span class="font-semibold text-red-200">{{ $stats['payments_failed'] }} {{ $stats['payments_failed'] > 1 ? 'échoués' : 'échoué' }}</span>
+                {{ $stats['confirmed_orders'] }} {{ $stats['confirmed_orders'] > 1 ? 'commandes confirmées' : 'commande confirmée' }}
+                @if ($stats['reserved_orders'] > 0)
+                    · <a href="{{ route('admin.orders.index', ['statut' => 'pending']) }}" class="font-semibold text-safran underline underline-offset-4">{{ $stats['reserved_orders'] }} à traiter</a>
                 @endif
             </p>
         </div>
@@ -55,7 +55,7 @@
         </div>
 
         @if ($recentOrders->isEmpty())
-            <x-admin.empty icon="list" title="Aucune commande pour le moment" text="Les commandes apparaîtront ici dès la première réservation sur le site." />
+            <x-admin.empty icon="list" title="Aucune commande pour le moment" text="Les commandes apparaîtront ici dès qu'un client en enverra une depuis le site." />
         @else
             <div class="overflow-x-auto border-t border-bord">
                 <table class="tbl">

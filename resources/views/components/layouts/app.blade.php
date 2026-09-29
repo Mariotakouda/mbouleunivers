@@ -9,7 +9,7 @@
 @php
     $siteName = "Univers 2 M'boulè";
     $pageTitle = $title ? "{$title} — {$siteName}" : "{$siteName} — Billetterie officielle";
-    $pageDescription = $description ?? "Réservez vos billets en ligne pour le spectacle {$siteName}. Paiement sécurisé, billet avec QR code envoyé par email.";
+    $pageDescription = $description ?? "Réservez vos billets en ligne pour le spectacle {$siteName}. Commande simple via WhatsApp, billet avec QR code.";
     $whatsapp = config('services.support.whatsapp');
     $supportEmail = config('services.support.email');
 
@@ -87,8 +87,8 @@
 
             <div class="flex flex-col gap-3 text-sm md:items-end">
                 <p class="inline-flex items-center gap-2">
-                    <x-ui.icon name="shield-check" class="size-5 text-safran" />
-                    Paiement sécurisé par PayGateGlobal
+                    <x-ui.icon name="message-circle" class="size-5 text-safran" />
+                    Commande et paiement en direct avec l'organisateur
                 </p>
                 @if ($whatsapp || $supportEmail)
                     <p class="flex flex-wrap items-center gap-x-4 gap-y-1">

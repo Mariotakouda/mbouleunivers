@@ -134,8 +134,8 @@
             <ol class="mt-8 grid gap-8 md:grid-cols-3">
                 @foreach ([
                     ['Choisissez vos billets', 'Sélectionnez la catégorie et le nombre de places. Pas besoin de créer un compte.'],
-                    ['Payez en ligne', 'Réglez en toute sécurité par Mobile Money (Flooz, T-Money) ou via WhatsApp. Vos places sont gardées le temps de payer.'],
-                    ['Recevez votre QR code', 'Le billet arrive par email et reste disponible en ligne. Présentez-le à l\'entrée.'],
+                    ['Envoyez votre commande', 'Votre commande arrive directement chez nous et s\'ouvre dans WhatsApp. Nous confirmons, vous réglez par Mobile Money (Flooz, T-Money) et vos places sont gardées le temps de payer.'],
+                    ['Recevez votre QR code', 'Votre billet arrive sur WhatsApp (et par email si vous le souhaitez) et reste disponible en ligne. Présentez-le à l\'entrée.'],
                 ] as $i => [$stepTitle, $stepText])
                     <li class="flex gap-4">
                         <span class="grid size-10 shrink-0 place-items-center rounded-full bg-safran font-display text-lg font-extrabold text-nuit">{{ $i + 1 }}</span>
@@ -184,9 +184,9 @@
         <h2 class="text-3xl font-extrabold">Questions fréquentes</h2>
         <div class="mt-6 max-w-3xl space-y-3">
             @foreach ([
-                ['Comment je reçois mon billet ?', "Dès que le paiement est confirmé, votre billet avec QR code est envoyé par email et s'affiche sur la page de confirmation. Vous pouvez aussi le télécharger en PDF."],
-                ['Dois-je créer un compte ?', 'Non. Il suffit d\'indiquer votre nom, votre numéro de téléphone et votre email au moment de la commande.'],
-                ['Mon paiement a échoué, que faire ?', 'Vos places restent réservées pendant 10 minutes. Vous pouvez réessayer le paiement depuis la page de commande. Passé ce délai, il faudra recommencer la réservation.'],
+                ['Comment je reçois mon billet ?', "Dès que nous avons confirmé votre paiement, votre billet avec QR code s'affiche sur la page de votre commande et vous est envoyé sur WhatsApp (et par email si vous en avez indiqué un). Vous pouvez aussi le télécharger en PDF."],
+                ['Dois-je créer un compte ?', 'Non. Il suffit d\'indiquer votre nom et votre numéro WhatsApp au moment de la commande (l\'email est facultatif).'],
+                ['Comment se passe le paiement ?', 'Aucun paiement n\'est demandé sur le site. Une fois votre commande envoyée sur WhatsApp, nous vous indiquons comment régler par Mobile Money (Flooz ou T-Money). Vos places sont gardées le temps de finaliser ; passé ce délai, elles sont remises en vente.'],
                 ['Comment entrer dans la salle ?', 'Présentez le QR code de votre billet (sur téléphone ou imprimé) à l\'agent à l\'entrée. Chaque billet ne peut être scanné qu\'une seule fois.'],
             ] as [$q, $a])
                 <details class="group card p-5">

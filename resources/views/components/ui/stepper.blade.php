@@ -1,5 +1,5 @@
 @props(['current' => 1])
-@php $steps = ['Billets', 'Vos infos', 'Paiement']; @endphp
+@php $steps = ['Billets', 'Vos infos', 'WhatsApp']; @endphp
 <ol class="flex items-center gap-2 text-sm" aria-label="Étapes de la commande">
     @foreach ($steps as $i => $label)
         @php $n = $i + 1; $done = $n < $current; $active = $n === $current; @endphp

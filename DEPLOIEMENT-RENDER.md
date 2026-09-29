@@ -10,7 +10,7 @@ construire l'image Docker ni faire un vrai déploiement. Ce que j'ai fait à la 
   Postgres, ce n'est pas le cas ici).
 - J'ai testé, sur cette base Postgres et dans un vrai navigateur : la connexion admin, la
   création d'un spectacle et d'une catégorie de billets, une réservation, le paiement
-  PayGateGlobal (webhook + génération des billets), la connexion agent.
+  la commande via WhatsApp, la confirmation du paiement par l'admin (génération des billets), la connexion agent.
 
 Donc le CODE de l'application fonctionne avec Postgres. Ce que je n'ai PAS pu vérifier :
 la construction de l'image Docker elle-même, ni son comportement réel une fois déployée
@@ -21,10 +21,10 @@ sur un environnement de test Render avant de couper votre hébergement actuel.
 
 Ce blueprint utilise le plan **Starter** (le plan gratuit efface le disque à chaque
 redéploiement et supprime la base au bout de 30 jours — inutilisable pour un site qui
-encaisse de vrais paiements). Trois services payants sont créés :
+prend de vraies commandes). Trois services payants sont créés :
 - le site (web)
 - la file d'attente + planificateur (worker) — envoie les emails de billets et libère les
-  places non payées après 10 minutes
+  places des commandes non confirmées (24 h par défaut, réglable avec `ORDER_HOLD_HOURS`)
 - la base de données PostgreSQL
 
 Vérifiez le tarif actuel de chaque plan Starter sur render.com/pricing avant de déployer.
@@ -40,8 +40,8 @@ Vérifiez le tarif actuel de chaque plan Starter sur render.com/pricing avant de
 
 3. Render vous demande de renseigner les variables marquées `sync: false` avant de créer
    les services :
-   - `PAYGATE_AUTH_TOKEN` : votre clé API PayGateGlobal
-   - `SUPPORT_WHATSAPP` : votre numéro WhatsApp, format `+22890000000`
+   - `SUPPORT_WHATSAPP` : le numéro WhatsApp qui reçoit les commandes, format `+22890000000`
+   - `ADMIN_NOTIFY_EMAIL` : (facultatif) l'email prévenu à chaque nouvelle commande
    - `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` : les identifiants
      de votre service d'envoi d'emails (ex. Brevo, Mailgun, ou un compte SMTP classique)
 
@@ -51,17 +51,12 @@ Vérifiez le tarif actuel de chaque plan Starter sur render.com/pricing avant de
    était déjà pris), mettez à jour la variable `APP_URL` dans le service `univermboule`
    avec la vraie adresse, puis redéployez.
 
-5. **Chez PayGateGlobal / BHK Konsulting** : indiquez l'URL de confirmation de paiement :
-   ```
-   https://votre-adresse.onrender.com/payment/webhook
-   ```
-
-6. Connectez-vous sur `https://votre-adresse.onrender.com/admin/login` avec
+5. Connectez-vous sur `https://votre-adresse.onrender.com/admin/login` avec
    `admin@universmboule.tg` / `password`, **et changez ce mot de passe immédiatement**
    (Admin > Utilisateurs).
 
-7. Faites un vrai paiement Flooz ou T-Money, petit montant, pour vérifier que le webhook
-   fonctionne et que le billet est bien généré et envoyé par email.
+6. Faites une commande de test : envoyez-la sur WhatsApp depuis le site, retrouvez-la dans
+   Admin > Commandes, confirmez le paiement et vérifiez que les billets sont bien générés.
 
 ## Si quelque chose ne marche pas
 

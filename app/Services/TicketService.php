@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ class TicketService
      */
     public function createReservation(Event $event, array $customer, array $items): Order
     {
+        $this->guardAgainstStockHoarding($customer['phone'] ?? null);
+
         return DB::transaction(function () use ($event, $customer, $items) {
             $totalAmount = 0;
             $preparedItems = [];
@@ -54,10 +57,12 @@ class TicketService
                 'reference' => 'ORD-' . strtoupper(Str::random(10)),
                 'customer_name' => $customer['name'],
                 'customer_phone' => $customer['phone'],
-                'customer_email' => $customer['email'],
+                'customer_email' => $customer['email'] ?? null,
+                'customer_note' => $customer['note'] ?? null,
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
-                'expires_at' => now()->addMinutes(10), // RM06
+                // RM06 : sans paiement en ligne, on garde les places le temps de l'échange sur WhatsApp.
+                'expires_at' => now()->addHours(config('ticketing.hold_hours', 24)),
             ]);
 
             foreach ($preparedItems as $prepared) {
@@ -82,7 +87,7 @@ class TicketService
     {
         DB::transaction(function () use ($order) {
             if ($order->isPaid()) {
-                return; // idempotence : évite double génération si webhook + retour navigateur arrivent tous les deux
+                return; // idempotence : évite de générer deux fois les billets si l'admin double-clique
             }
 
             $order->update([
@@ -108,8 +113,71 @@ class TicketService
             }
         });
 
-        // Envoi email en asynchrone (hors transaction pour ne pas bloquer le commit)
-        \App\Jobs\SendTicketEmailJob::dispatch($order->fresh('tickets'));
+        // Envoi email en asynchrone (hors transaction pour ne pas bloquer le commit).
+        // L'email est facultatif : sans adresse, l'admin envoie le lien des billets par WhatsApp.
+        if ($order->customer_email) {
+            \App\Jobs\SendTicketEmailJob::dispatch($order->fresh('tickets'));
+        }
+    }
+
+    /**
+     * L'admin a reçu l'argent (Flooz, T-Money, espèces…) : on enregistre l'encaissement puis on
+     * génère les billets. Idempotent : une commande déjà payée n'est pas retraitée.
+     */
+    public function markAsPaid(Order $order, string $method, ?string $reference = null): void
+    {
+        DB::transaction(function () use ($order, $method, $reference) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            abort_if($locked->status !== 'pending', 422, 'Cette commande ne peut plus être confirmée.');
+
+            Payment::create([
+                'order_id' => $locked->id,
+                'transaction_id' => $reference ?: null,
+                'amount' => $locked->total_amount,
+                'currency' => 'XOF',
+                'method' => $method,
+                'status' => 'successful',
+                'paid_at' => now(),
+            ]);
+        });
+
+        $this->confirmPaymentAndGenerateTickets($order->fresh('items'));
+    }
+
+    /** Annulation par l'admin : les places retournent en vente. */
+    public function cancelOrder(Order $order): void
+    {
+        $this->release($order, 'cancelled');
+    }
+
+    /** Laisse plus de temps au client pour payer (admin). */
+    public function extendReservation(Order $order, int $hours = 24): void
+    {
+        abort_if($order->status !== 'pending', 422, 'Seule une commande en attente peut être prolongée.');
+
+        $base = $order->expires_at && $order->expires_at->isFuture() ? $order->expires_at : now();
+
+        $order->update(['expires_at' => $base->copy()->addHours($hours)]);
+    }
+
+    /**
+     * Sans paiement en ligne, rien ne « coûte » au client de réserver : on limite donc le nombre de
+     * commandes en attente par numéro pour éviter qu'une seule personne bloque toute la salle.
+     */
+    private function guardAgainstStockHoarding(?string $phone): void
+    {
+        if (! $phone) {
+            return;
+        }
+
+        $max = (int) config('ticketing.max_pending_per_phone', 2);
+
+        if ($max > 0 && Order::awaiting()->where('customer_phone', $phone)->count() >= $max) {
+            throw new \RuntimeException(
+                "Vous avez déjà {$max} commandes en attente avec ce numéro. Finalisez-les sur WhatsApp, ou contactez-nous pour en ajouter."
+            );
+        }
     }
 
     /**
@@ -117,13 +185,29 @@ class TicketService
      */
     public function releaseExpiredOrder(Order $order): void
     {
-        DB::transaction(function () use ($order) {
-            foreach ($order->items as $item) {
-                $item->ticketType->incrementAvailability($item->quantity);
+        $this->release($order, 'expired');
+    }
+
+    private function release(Order $order, string $finalStatus): void
+    {
+        DB::transaction(function () use ($order, $finalStatus) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== 'pending') {
+                return; // déjà payée, annulée ou expirée : on ne libère jamais deux fois les places
             }
 
-            $order->update(['status' => 'expired']);
+            foreach ($locked->items()->with('ticketType')->get() as $item) {
+                $item->ticketType?->incrementAvailability($item->quantity);
+            }
+
+            $locked->update([
+                'status' => $finalStatus,
+                'cancelled_at' => $finalStatus === 'cancelled' ? now() : $locked->cancelled_at,
+            ]);
         });
+
+        $order->refresh();
     }
 
     private function generateTicketNumber(Order $order, int $sequence): string

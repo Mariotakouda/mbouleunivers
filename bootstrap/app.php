@@ -23,9 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ? route('agent.login')
             : route('admin.login'));
 
-        // FedaPay appelle ce point d'entrée depuis ses serveurs : il n'a pas de jeton CSRF (sinon erreur 419).
-        $middleware->validateCsrfTokens(except: ['payment/webhook']);
-
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'agent' => EnsureUserIsAgent::class,

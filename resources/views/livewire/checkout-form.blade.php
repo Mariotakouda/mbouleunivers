@@ -2,7 +2,7 @@
     {{-- Formulaire --}}
     <div class="md:order-1">
         <h1 class="text-3xl font-extrabold">Vos informations</h1>
-        <p class="mt-2 text-sourdine">Nous en avons besoin pour vous envoyer vos billets. Pas de compte à créer.</p>
+        <p class="mt-2 text-sourdine">Nous vous répondons sur WhatsApp pour finaliser votre commande. Pas de compte à créer, aucun paiement en ligne.</p>
 
         @error('items')
             <x-ui.alert type="error" class="mt-5">{{ $message }}</x-ui.alert>
@@ -20,7 +20,7 @@
             </div>
 
             <div>
-                <label for="customerPhone" class="label">Téléphone</label>
+                <label for="customerPhone" class="label">Numéro WhatsApp</label>
                 <div class="relative">
                     <input id="customerPhone" type="tel" inputmode="tel" wire:model.blur="customerPhone" autocomplete="tel"
                            placeholder="90 12 34 56" @class(['input', 'input-invalid' => $errors->has('customerPhone')])
@@ -29,34 +29,43 @@
                 @error('customerPhone')
                     <p id="err-phone" class="field-error"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $message }}</p>
                 @else
-                    <p class="hint">8 chiffres, avec ou sans +228. C'est le numéro utilisé pour le paiement.</p>
+                    <p class="hint">8 chiffres, avec ou sans +228 (ou un numéro international avec +). C'est là que nous vous écrirons.</p>
                 @enderror
             </div>
 
             <div>
-                <label for="customerEmail" class="label">Email</label>
+                <label for="customerEmail" class="label">Email <span class="font-normal text-sourdine">(facultatif)</span></label>
                 <input id="customerEmail" type="email" inputmode="email" wire:model.blur="customerEmail" autocomplete="email"
                        placeholder="vous@exemple.com" @class(['input', 'input-invalid' => $errors->has('customerEmail')])
                        @if ($errors->has('customerEmail')) aria-invalid="true" aria-describedby="err-email" @endif>
                 @error('customerEmail')
                     <p id="err-email" class="field-error"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $message }}</p>
                 @else
-                    <p class="hint">Vos billets et votre QR code seront envoyés à cette adresse.</p>
+                    <p class="hint">Si vous en avez une, nous y envoyons aussi vos billets.</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="customerNote" class="label">Message <span class="font-normal text-sourdine">(facultatif)</span></label>
+                <textarea id="customerNote" rows="3" wire:model.blur="customerNote" maxlength="500"
+                          placeholder="Une question, une demande particulière…" @class(['input', 'input-invalid' => $errors->has('customerNote')])></textarea>
+                @error('customerNote')
+                    <p class="field-error"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $message }}</p>
                 @enderror
             </div>
 
             <button type="submit" class="btn btn-primary btn-lg w-full" wire:loading.attr="disabled" wire:target="submit">
                 <span wire:loading.remove wire:target="submit" class="inline-flex items-center gap-2">
-                    <x-ui.icon name="lock" class="size-5" /> Continuer vers le paiement
+                    <x-ui.icon name="message-circle" class="size-5" /> Envoyer ma commande
                 </span>
                 <span wire:loading wire:target="submit" class="inline-flex items-center gap-2">
-                    <x-ui.icon name="loader" class="size-5 animate-spin" /> Réservation en cours…
+                    <x-ui.icon name="loader" class="size-5 animate-spin" /> Enregistrement de la commande…
                 </span>
             </button>
 
             <p class="flex items-start gap-2 text-sm text-sourdine">
                 <x-ui.icon name="clock" class="mt-0.5 size-4 shrink-0" />
-                Vos places sont réservées 10 minutes à partir du moment où vous continuez.
+                Vos places sont réservées {{ $holdHours }} h, le temps de finaliser avec nous sur WhatsApp.
             </p>
         </form>
     </div>
@@ -87,7 +96,7 @@
 
         <p class="mt-4 flex items-center gap-2 text-sm text-sourdine">
             <x-ui.icon name="shield-check" class="size-5 shrink-0 text-succes" />
-            Vous choisirez ensuite votre mode de paiement (Mobile Money en ligne ou WhatsApp).
+            Vous ne payez rien maintenant : après votre message WhatsApp, nous confirmons et vous réglez par Mobile Money.
         </p>
     </aside>
 </div>

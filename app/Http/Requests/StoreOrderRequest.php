@@ -17,8 +17,9 @@ class StoreOrderRequest extends FormRequest
             'event_id' => ['required', 'exists:events,id'],
 
             'customer_name' => ['required', 'string', 'max:150'],
-            'customer_phone' => ['required', 'string', 'max:20', 'regex:/^(\+228)?[0-9]{8}$/'],
-            'customer_email' => ['required', 'email', 'max:150'],
+            'customer_phone' => ['required', 'string', 'max:20', 'regex:/^((\+?228|00228)?[0-9]{8}|\+[1-9][0-9]{7,14})$/'],
+            'customer_email' => ['nullable', 'email', 'max:150'],
+            'customer_note' => ['nullable', 'string', 'max:500'],
 
             'items' => ['required', 'array', 'min:1'],
             'items.*.ticket_type_id' => ['required', 'exists:ticket_types,id'],
@@ -29,7 +30,7 @@ class StoreOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'customer_phone.regex' => 'Le numéro de téléphone doit être un numéro togolais valide.',
+            'customer_phone.regex' => 'Numéro invalide : saisissez 8 chiffres (ex. 90 12 34 56) ou un numéro international (+33…).',
             'items.required' => 'Vous devez sélectionner au moins un billet.',
             'items.*.quantity.max' => 'Vous ne pouvez pas réserver plus de 10 billets par catégorie.',
         ];

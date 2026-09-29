@@ -2,7 +2,7 @@
 @php
     $map = [
         'paid' => ['Payée', 'bg-emerald-50 text-succes ring-succes/20'],
-        'pending' => ['En attente', 'bg-amber-50 text-alerte ring-alerte/20'],
+        'pending' => ['À traiter', 'bg-amber-50 text-alerte ring-alerte/20'],
         'expired' => ['Expirée', 'bg-slate-100 text-slate-600 ring-slate-300'],
         'cancelled' => ['Annulée', 'bg-red-50 text-erreur ring-erreur/20'],
         'published' => ['Publié', 'bg-emerald-50 text-succes ring-succes/20'],

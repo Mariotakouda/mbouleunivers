@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Models\Order;
-use App\Models\Payment;
 use App\Models\Ticket;
 use App\Models\TicketType;
 use Livewire\Component;
@@ -30,14 +29,11 @@ class AdminDashboard extends Component
             'total_tickets' => $totalTickets,
             'available_tickets' => $availableTickets,
             'sold_tickets' => $soldTickets,
-            'reserved_orders' => (clone $orders)->where('status', 'pending')->count(),
+            'reserved_orders' => (clone $orders)->awaiting()->count(),
+            'confirmed_orders' => (clone $orders)->where('status', 'paid')->count(),
             'entries' => Ticket::whereHas('order', fn ($q) => $this->eventId ? $q->where('event_id', $this->eventId) : $q)
                 ->where('status', 'used')->count(),
             'revenue' => (clone $orders)->where('status', 'paid')->sum('total_amount'),
-            'payments_successful' => Payment::whereHas('order', fn ($q) => $this->eventId ? $q->where('event_id', $this->eventId) : $q)
-                ->where('status', 'successful')->count(),
-            'payments_failed' => Payment::whereHas('order', fn ($q) => $this->eventId ? $q->where('event_id', $this->eventId) : $q)
-                ->where('status', 'failed')->count(),
         ];
     }
 

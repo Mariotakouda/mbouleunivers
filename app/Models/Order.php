@@ -11,7 +11,8 @@ class Order extends Model
 {
     protected $fillable = [
         'event_id', 'reference', 'customer_name', 'customer_phone',
-        'customer_email', 'total_amount', 'status', 'expires_at', 'paid_at',
+        'customer_email', 'customer_note', 'total_amount', 'status', 'expires_at',
+        'whatsapp_clicked_at', 'paid_at', 'cancelled_at',
     ];
 
     protected function casts(): array
@@ -19,7 +20,9 @@ class Order extends Model
         return [
             'total_amount' => 'decimal:2',
             'expires_at' => 'datetime',
+            'whatsapp_clicked_at' => 'datetime',
             'paid_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -63,5 +66,17 @@ class Order extends Model
     public function isPaid(): bool
     {
         return $this->status === 'paid';
+    }
+
+    /** En attente de traitement par l'admin (et pas encore expirée). */
+    public function isAwaitingConfirmation(): bool
+    {
+        return $this->status === 'pending' && ! $this->isExpired();
+    }
+
+    /** Commandes à traiter : en attente et dont les places sont encore réservées. */
+    public function scopeAwaiting($query)
+    {
+        return $query->where('status', 'pending')->where('expires_at', '>', now());
     }
 }

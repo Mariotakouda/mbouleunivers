@@ -57,13 +57,15 @@ services:
         value: stack
       - key: LOG_LEVEL
         value: error
-      # --- Paiement PayGateGlobal (Flooz / T-Money) ---
-      - key: PAYGATE_AUTH_TOKEN
-        sync: false # à saisir vous-même dans le tableau de bord Render (jamais dans le code)
-      - key: PAYGATE_BASE_URL
-        value: https://paygateglobal.com
-      # --- WhatsApp (paiement Mobile Money direct) ---
+      # --- Commande via WhatsApp (aucun agrégateur de paiement) ---
+      # Numéro qui reçoit les commandes des clients, format +22890000000
       - key: SUPPORT_WHATSAPP
+        sync: false
+      # Durée (en heures) pendant laquelle les places sont gardées en attendant le paiement
+      - key: ORDER_HOLD_HOURS
+        value: "24"
+      # Email prévenu à chaque nouvelle commande (facultatif : laissez vide pour désactiver)
+      - key: ADMIN_NOTIFY_EMAIL
         sync: false
       # --- Envoi des emails de billets : à remplacer par vos identifiants SMTP ---
       - key: MAIL_MAILER

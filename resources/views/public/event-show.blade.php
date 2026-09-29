@@ -60,7 +60,7 @@
                 </div>
 
                 <x-ui.alert type="info" class="mt-8 max-w-prose">
-                    Après votre choix, vous aurez 10 minutes pour payer. Le billet avec QR code est ensuite envoyé par email.
+                    Après votre choix, envoyez votre commande sur WhatsApp : nous confirmons, vous réglez par Mobile Money, et votre billet avec QR code vous est envoyé.
                 </x-ui.alert>
             </div>
         </div>

@@ -3,7 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\Event;
+use App\Notifications\NewOrderNotification;
 use App\Services\TicketService;
+use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Component;
 
 class CheckoutForm extends Component
@@ -14,22 +18,25 @@ class CheckoutForm extends Component
     public string $customerName = '';
     public string $customerPhone = '';
     public string $customerEmail = '';
+    public string $customerNote = '';
 
     protected function rules(): array
     {
         return [
             'customerName' => ['required', 'string', 'max:150'],
-            'customerPhone' => ['required', 'string', 'max:20', 'regex:/^(\+228)?[0-9]{8}$/'],
-            'customerEmail' => ['required', 'email', 'max:150'],
+            // 8 chiffres (Togo), avec +228 / 00228, ou un numéro international (+33…) pour la diaspora.
+            'customerPhone' => ['required', 'string', 'max:20', 'regex:/^((\+?228|00228)?[0-9]{8}|\+[1-9][0-9]{7,14})$/'],
+            'customerEmail' => ['nullable', 'email', 'max:150'],
+            'customerNote' => ['nullable', 'string', 'max:500'],
         ];
     }
 
     protected array $messages = [
         'customerName.required' => 'Indiquez votre nom complet.',
-        'customerPhone.required' => 'Indiquez votre numéro de téléphone.',
-        'customerPhone.regex' => 'Numéro invalide : saisissez 8 chiffres (ex. 90 12 34 56) ou le format +228 90 12 34 56.',
-        'customerEmail.required' => 'Indiquez votre adresse email : c\'est là que nous enverrons vos billets.',
+        'customerPhone.required' => 'Indiquez votre numéro WhatsApp.',
+        'customerPhone.regex' => 'Numéro invalide : saisissez 8 chiffres (ex. 90 12 34 56), ou un numéro international (+33…).',
         'customerEmail.email' => 'Cette adresse email ne semble pas valide.',
+        'customerNote.max' => 'Votre message est trop long (500 caractères maximum).',
     ];
 
     public function mount(Event $event): void
@@ -85,29 +92,47 @@ class CheckoutForm extends Component
         return (int) $this->selectedTickets->sum('quantity');
     }
 
-    public function submit(TicketService $ticketService)
+    public function submit(TicketService $ticketService, WhatsAppService $whatsApp)
     {
         $this->customerPhone = $this->cleanPhone($this->customerPhone);
         $this->validate();
+
+        // Sans paiement en ligne, on freine les commandes en rafale depuis une même connexion.
+        $throttleKey = 'checkout:' . request()->ip();
+        $maxPerIp = (int) config('ticketing.max_orders_per_ip', 5);
+
+        if ($maxPerIp > 0 && RateLimiter::tooManyAttempts($throttleKey, $maxPerIp)) {
+            $this->addError('items', 'Trop de commandes en peu de temps. Patientez quelques minutes ou contactez-nous sur WhatsApp.');
+
+            return;
+        }
 
         try {
             $order = $ticketService->createReservation(
                 event: $this->event,
                 customer: [
-                    'name' => $this->customerName,
-                    'phone' => $this->customerPhone,
-                    'email' => $this->customerEmail,
+                    'name' => trim($this->customerName),
+                    'phone' => $whatsApp->e164($this->customerPhone),
+                    'email' => trim($this->customerEmail) ?: null,
+                    'note' => trim($this->customerNote) ?: null,
                 ],
                 items: $this->items,
             );
         } catch (\RuntimeException $e) {
             $this->addError('items', $e->getMessage());
+
             return;
+        }
+
+        RateLimiter::hit($throttleKey, 600);
+
+        if ($email = config('ticketing.notify_email')) {
+            Notification::route('mail', $email)->notify(new NewOrderNotification($order));
         }
 
         session()->forget('checkout_items');
 
-        return $this->redirect(route('payment.show', $order->reference), navigate: true);
+        return $this->redirect(route('order.show', $order->reference), navigate: true);
     }
 
     /** « 90 12 34 56 » → « 90123456 » */
@@ -118,6 +143,8 @@ class CheckoutForm extends Component
 
     public function render()
     {
-        return view('livewire.checkout-form');
+        return view('livewire.checkout-form', [
+            'holdHours' => (int) config('ticketing.hold_hours', 24),
+        ]);
     }
 }

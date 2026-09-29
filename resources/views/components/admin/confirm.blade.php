@@ -35,16 +35,22 @@
             </span>
             <h2 id="dlg-{{ md5($action) }}" class="mt-4 text-xl font-extrabold">{{ $title }}</h2>
             <p class="mt-2 leading-relaxed text-sourdine">{{ $message }}</p>
-            <form method="POST" action="{{ $action }}" class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <form method="POST" action="{{ $action }}" class="mt-6">
                 @csrf
                 @if (strtoupper($method) !== 'POST') @method($method) @endif
-                <button type="button" @click="open = false" class="btn btn-ghost">Annuler</button>
-                <button type="submit" @class([
-                    'btn',
-                    'btn-danger' => $tone === 'danger',
-                    'btn-success' => $tone === 'success',
-                    'btn-dark' => ! in_array($tone, ['danger', 'success']),
-                ])>{{ $confirm }}</button>
+                {{-- Champs supplémentaires facultatifs (ex. mode de paiement) --}}
+                @isset($fields)
+                    <div class="mb-6 space-y-4">{{ $fields }}</div>
+                @endisset
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" @click="open = false" class="btn btn-ghost">Annuler</button>
+                    <button type="submit" @class([
+                        'btn',
+                        'btn-danger' => $tone === 'danger',
+                        'btn-success' => $tone === 'success',
+                        'btn-dark' => ! in_array($tone, ['danger', 'success']),
+                    ])>{{ $confirm }}</button>
+                </div>
             </form>
         </div>
     </div>

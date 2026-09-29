@@ -11,7 +11,7 @@
         ]],
         ['Ventes', [
             ['admin.orders.index', 'Commandes', 'list', 'admin.orders.*'],
-            ['admin.payments.index', 'Paiements', 'credit-card', 'admin.payments.*'],
+            ['admin.payments.index', 'Encaissements', 'credit-card', 'admin.payments.*'],
             ['admin.tickets.index', 'Billets émis', 'qr', 'admin.tickets.*'],
         ]],
         ['Équipe', [
@@ -19,6 +19,8 @@
         ]],
     ];
     $user = auth()->user();
+    // Pastille sur « Commandes » : nombre de commandes clients encore à traiter.
+    $pendingOrders = \App\Models\Order::awaiting()->count();
 @endphp
 <!DOCTYPE html>
 <html lang="fr">
@@ -77,6 +79,9 @@
                                        'text-white/85 hover:bg-white/10' => ! $active,
                                    ])>
                                     <x-ui.icon :name="$icon" class="size-5 shrink-0" /> {{ $label }}
+                                    @if ($route === 'admin.orders.index' && $pendingOrders > 0)
+                                        <span class="ml-auto grid min-w-6 place-items-center rounded-full bg-alerte px-2 py-0.5 text-xs font-bold tabular-nums text-white" aria-label="{{ $pendingOrders }} commande(s) à traiter">{{ $pendingOrders }}</span>
+                                    @endif
                                 </a>
                             </li>
                         @endforeach

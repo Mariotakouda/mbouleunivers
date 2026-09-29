@@ -41,9 +41,4 @@ return [
         'email' => env('SUPPORT_EMAIL'),
     ],
 
-    'paygate' => [
-    'auth_token' => env('PAYGATE_AUTH_TOKEN'),
-    'base_url' => env('PAYGATE_BASE_URL', 'https://paygateglobal.com'),
-],
-
 ];

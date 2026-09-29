@@ -25,6 +25,16 @@ class Payment extends Model
         return $this->belongsTo(Order::class);
     }
 
+    /** « Flooz (Moov Money) », « Espèces »… */
+    public function methodLabel(): string
+    {
+        return match ($this->method) {
+            'manual_whatsapp' => 'WhatsApp (manuel)',
+            null, '' => '—',
+            default => config('ticketing.payment_methods.' . $this->method, ucfirst((string) $this->method)),
+        };
+    }
+
     public function isSuccessful(): bool
     {
         return $this->status === 'successful';
