@@ -89,74 +89,155 @@ class WhatsAppService
         return $this->url($order->customer_phone, $this->ticketsMessage($order));
     }
 
-    /** Message que le client envoie à l'organisateur : tout est déjà dedans, il n'a qu'à appuyer sur « Envoyer ». */
+    /**
+     * Message que le client envoie à l'organisateur. Tout est déjà dedans (commande + coordonnées) :
+     * il n'a qu'à appuyer sur « Envoyer ». Mise en forme WhatsApp : *gras*, sans surcharge d'emojis.
+     */
     public function orderMessage(Order $order): string
     {
         $order->loadMissing('event', 'items.ticketType');
         $event = $order->event;
 
         $lines = [
-            "🎭 *NOUVELLE COMMANDE — {$order->reference}*",
+            "*NOUVELLE COMMANDE — {$order->reference}*",
+            "Passée le {$order->created_at->format('d/m/Y')} à {$order->created_at->format('H:i')}",
             '',
             "*{$event->title}*",
-            "📅 {$event->dateLong()} à {$event->startTimeLabel()}",
+            $this->eventWhen($event),
         ];
 
         if ($event->venue) {
-            $lines[] = "📍 {$event->venue}";
+            $lines[] = "Lieu : {$event->venue}";
         }
 
         $lines[] = '';
-        $lines[] = '🎟️ *Billets*';
+        $lines[] = '*Détail de la commande*';
 
         foreach ($order->items as $item) {
-            $lines[] = "• {$item->quantity} × " . ($item->ticketType?->name ?? 'Billet') . ' — ' . $this->money($item->subtotal);
+            $lines[] = "▪ {$item->quantity} × " . ($item->ticketType?->name ?? 'Billet')
+                . ' (' . $this->money($item->unit_price) . ') = ' . $this->money($item->subtotal);
         }
 
+        $lines[] = '*Total à régler : ' . $this->money($order->total_amount) . '*';
         $lines[] = '';
-        $lines[] = '💰 *Total : ' . $this->money($order->total_amount) . '*';
-        $lines[] = '';
-        $lines[] = '👤 *Client*';
+        $lines[] = '*Coordonnées du client*';
         $lines[] = "Nom : {$order->customer_name}";
-        $lines[] = 'Téléphone : ' . $this->pretty($order->customer_phone);
+        $lines[] = 'WhatsApp : ' . $this->pretty($order->customer_phone);
 
         if ($order->customer_email) {
             $lines[] = "Email : {$order->customer_email}";
         }
 
         if ($order->customer_note) {
-            $lines[] = "Message : {$order->customer_note}";
+            $lines[] = '';
+            $lines[] = '*Message du client*';
+            $lines[] = $order->customer_note;
         }
 
         $lines[] = '';
-        $lines[] = 'Bonjour, je confirme ma commande. Pouvez-vous m\'indiquer comment procéder au paiement (Flooz / T-Money) ? Merci !';
+        $lines[] = 'Bonjour, je souhaite confirmer cette commande. Pourriez-vous m\'indiquer la marche à suivre pour le règlement par Mobile Money (Flooz ou T-Money) ? Je vous remercie.';
 
         return implode("\n", $lines);
     }
 
-    /** Premier message de l'admin au client. */
+    /** Premier message de l'admin au client : accusé de réception + comment payer. */
     public function messageToCustomer(Order $order): string
     {
         $order->loadMissing('event', 'items.ticketType');
+        $event = $order->event;
 
-        $tickets = $order->items
-            ->map(fn ($item) => "{$item->quantity} × " . ($item->ticketType?->name ?? 'Billet'))
-            ->implode(', ');
+        $lines = [
+            "Bonjour {$order->customer_name},",
+            '',
+            "Merci pour votre commande *{$order->reference}* pour « {$event->title} » : nous l'avons bien reçue.",
+            '',
+            '*Récapitulatif*',
+        ];
 
-        return "Bonjour {$order->customer_name}, c'est l'équipe « {$order->event->title} ». "
-            . "Nous avons bien reçu votre commande {$order->reference} ({$tickets}, total {$this->money($order->total_amount)}). "
-            . 'Vous pouvez régler par Mobile Money (Flooz ou T-Money) ; dès réception, nous vous envoyons vos billets avec QR code.';
+        foreach ($order->items as $item) {
+            $lines[] = "▪ {$item->quantity} × " . ($item->ticketType?->name ?? 'Billet') . ' — ' . $this->money($item->subtotal);
+        }
+
+        $lines[] = '*Total à régler : ' . $this->money($order->total_amount) . '*';
+        $lines[] = '';
+        $lines[] = '*Pour régler par Mobile Money*';
+
+        $methods = $this->paymentInstructions();
+
+        if ($methods) {
+            foreach ($methods as $method) {
+                $lines[] = "▪ {$method}";
+            }
+            $lines[] = "Merci d'indiquer la référence {$order->reference} et de nous envoyer la capture de confirmation.";
+        } else {
+            $lines[] = 'Réglez par Flooz ou T-Money, puis envoyez-nous la capture de confirmation en indiquant la référence ' . $order->reference . '.';
+        }
+
+        if ($order->expires_at) {
+            $lines[] = '';
+            $lines[] = "Vos places sont réservées jusqu'au {$order->expires_at->format('d/m/Y')} à {$order->expires_at->format('H:i')}.";
+        }
+
+        $lines[] = '';
+        $lines[] = "Dès réception de votre paiement, nous vous envoyons vos billets avec QR code.";
+        $lines[] = "L'équipe {$event->title}";
+
+        return implode("\n", $lines);
     }
 
-    /** Message de l'admin au client une fois le paiement confirmé. */
+    /** Message de l'admin au client une fois le paiement confirmé, avec le lien de ses billets. */
     public function ticketsMessage(Order $order): string
     {
         $order->loadMissing('event');
+        $event = $order->event;
 
-        return "Bonjour {$order->customer_name}, votre paiement est confirmé ✅ "
-            . "Voici vos billets pour « {$order->event->title} » ({$order->event->dateLong()}) : "
-            . route('ticket.show', $order->reference)
-            . " — présentez le QR code à l'entrée. À très bientôt !";
+        $lines = [
+            "Bonjour {$order->customer_name},",
+            '',
+            "Nous avons bien reçu votre paiement de *{$this->money($order->total_amount)}* : votre commande *{$order->reference}* est confirmée. Merci !",
+            '',
+            "*{$event->title}*",
+            $this->eventWhen($event),
+        ];
+
+        if ($event->venue) {
+            $lines[] = "Lieu : {$event->venue}";
+        }
+
+        $lines[] = '';
+        $lines[] = '*Vos billets (QR code)*';
+        $lines[] = route('ticket.show', $order->reference);
+        $lines[] = '';
+        $lines[] = "Présentez le QR code de chaque billet à l'entrée (sur téléphone ou imprimé). Chaque billet n'est valable qu'une seule fois : ne le partagez pas publiquement.";
+        $lines[] = '';
+        $lines[] = 'À très bientôt !';
+        $lines[] = "L'équipe {$event->title}";
+
+        return implode("\n", $lines);
+    }
+
+    /** Lignes « Flooz : 90 00 00 00 (Nom) » configurées par l'organisateur ; vide si rien n'est configuré. */
+    private function paymentInstructions(): array
+    {
+        $name = config('ticketing.payment_account_name');
+        $lines = [];
+
+        foreach (['flooz' => 'Flooz (Moov Money)', 'tmoney' => 'T-Money (Togocom)'] as $key => $label) {
+            $number = config("ticketing.payment_numbers.{$key}");
+
+            if ($number) {
+                $lines[] = "{$label} : " . $this->pretty($number) . ($name ? " — au nom de {$name}" : '');
+            }
+        }
+
+        return $lines;
+    }
+
+    /** « Samedi 17 octobre 2026 à 19h00 » */
+    private function eventWhen($event): string
+    {
+        return mb_strtoupper(mb_substr($event->dateLong(), 0, 1)) . mb_substr($event->dateLong(), 1)
+            . " à {$event->startTimeLabel()}";
     }
 
     private function money(float|int|string $amount): string

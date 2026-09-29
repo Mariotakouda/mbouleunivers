@@ -24,11 +24,11 @@
                 <input id="image" type="file" name="image" accept="image/*" @if (! $event) required @endif
                        @change="const f = $event.target.files[0]; preview = f ? URL.createObjectURL(f) : null"
                        @class(['input file:mr-4 file:rounded-lg file:border-0 file:bg-nuit file:px-4 file:py-2 file:font-semibold file:text-white', 'input-invalid' => $errors->has('image')])>
-                <p class="hint">Image JPG ou PNG, 4 Mo maximum.@if ($event?->image) Laissez vide pour garder l'affiche actuelle.@endif</p>
+                <p class="hint">Image JPG ou PNG, 4 Mo maximum.@if ($event?->hasPoster()) Laissez vide pour garder l'affiche actuelle.@endif</p>
                 @error('image') <p class="field-error"><x-ui.icon name="alert" class="mt-0.5 size-4 shrink-0" /> {{ $message }}</p> @enderror
             </div>
-            @if ($event?->image)
-                <img x-show="!preview" src="{{ Storage::url($event->image) }}" alt="Affiche actuelle" class="h-28 rounded-xl ring-1 ring-bord">
+            @if ($event?->hasPoster())
+                <img x-show="!preview" src="{{ $event->posterUrl() }}" alt="Affiche actuelle" class="h-28 rounded-xl ring-1 ring-bord">
             @endif
             <img x-show="preview" x-cloak :src="preview" alt="Aperçu de la nouvelle affiche" class="h-28 rounded-xl ring-1 ring-bord">
         </div>

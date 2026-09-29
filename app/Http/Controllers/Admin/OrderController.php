@@ -21,8 +21,10 @@ class OrderController extends Controller
         'closed' => 'Expirées / annulées',
     ];
 
-    public function index(Request $request): View
+    public function index(Request $request, TicketService $ticketService): View
     {
+        $ticketService->releaseExpiredOrdersThrottled();
+
         $tab = array_key_exists($request->query('statut'), self::TABS) ? $request->query('statut') : 'all';
         $search = trim((string) $request->query('q'));
 

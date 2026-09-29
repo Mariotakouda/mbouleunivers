@@ -1,23 +1,28 @@
-# Commande via WhatsApp — mise à jour d'Univers 2 M'boulè
+# Mise à jour d'Univers 2 M'boulè : commande via WhatsApp + hébergement gratuit Render
 
-## Installer
+## Installer (sur votre projet existant)
 1. Copiez le contenu de ce dossier PAR-DESSUS votre projet (mêmes chemins), en gardant votre `.env`, `.git`, `vendor` et `node_modules`.
-2. **Supprimez** ces fichiers devenus inutiles (ancien paiement en ligne) :
+2. **Supprimez** ces fichiers devenus inutiles :
    - `app/Services/PayGateService.php`
    - `app/Http/Controllers/Public/PaymentController.php`
-   - `resources/views/public/payment-show.blade.php`
-   - `resources/views/public/payment-success.blade.php`
-   - `resources/views/public/payment-failed.blade.php`
-   - `tests/Feature/ExampleTest.php` et `tests/Unit/ExampleTest.php` (tests d'exemple Laravel, non utilisés)
-3. Dans votre `.env`, vous pouvez retirer `PAYGATE_AUTH_TOKEN` et `PAYGATE_BASE_URL`, et vérifier :
-   - `SUPPORT_WHATSAPP=+228XXXXXXXX` : le numéro qui reçoit les commandes (obligatoire pour le bouton WhatsApp)
-   - `ORDER_HOLD_HOURS=24` (facultatif) : durée pendant laquelle les places sont gardées
-   - `ADMIN_NOTIFY_EMAIL=` (facultatif) : email prévenu à chaque commande
-4. `php artisan migrate` (ajoute 3 colonnes à `orders` et rend l'email facultatif ; les commandes existantes sont conservées).
-5. `npm run build` (de nouveaux styles sont utilisés), puis `php artisan test` : 17 tests doivent passer.
-6. Sur Render : retirez `PAYGATE_*` et ajoutez `ADMIN_NOTIFY_EMAIL` si voulu (déjà prévu dans le nouveau `render.yaml`).
+   - `resources/views/public/payment-show.blade.php`, `payment-success.blade.php`, `payment-failed.blade.php`
+   - `tests/Feature/ExampleTest.php` et `tests/Unit/ExampleTest.php` (tests d'exemple Laravel)
+3. Dans votre `.env` : retirez `PAYGATE_AUTH_TOKEN` / `PAYGATE_BASE_URL` et vérifiez `SUPPORT_WHATSAPP=+228XXXXXXXX` (numéro qui reçoit les commandes).
+   Facultatif : `ORDER_HOLD_HOURS=24`, `ADMIN_NOTIFY_EMAIL`, `PAYMENT_FLOOZ_NUMBER`, `PAYMENT_TMONEY_NUMBER`, `PAYMENT_ACCOUNT_NAME`.
+4. `php artisan migrate` (ajoute les colonnes de commande WhatsApp et la table des affiches ; les commandes existantes sont conservées).
+5. `npm run build`, puis `php artisan view:clear`, puis `php artisan test` : 27 tests doivent passer.
+6. **Ré-envoyez l'affiche du spectacle** depuis Admin > Spectacle (elle est désormais stockée en base).
 
 ## Le parcours
-Client : choisit ses billets → renseigne nom + numéro WhatsApp (email et message facultatifs) → la commande est **enregistrée tout de suite** → page de suivi avec le bouton « Envoyer ma commande sur WhatsApp » (message déjà rédigé : référence, spectacle, billets, total, coordonnées).
-Admin : la commande apparaît dans **Admin > Commandes** (pastille orange = nombre à traiter) → « Écrire au client » (WhatsApp) → le client paie en Mobile Money → « Confirmer le paiement » (choix Flooz / T-Money / espèces) → billets générés → « Envoyer les billets sur WhatsApp ».
-Places gardées 24 h ; « Prolonger » et « Annuler » disponibles ; libération automatique à l'expiration.
+Client : choisit ses billets → nom + numéro WhatsApp (email et message facultatifs) → commande **enregistrée tout de suite** → page de suivi avec le bouton « Envoyer ma commande sur WhatsApp » (message déjà rédigé).
+Admin : la commande apparaît dans **Admin > Commandes** (pastille = nombre à traiter) → « Écrire au client » → le client paie en Mobile Money → « Confirmer le paiement » (Flooz / T-Money / espèces) → billets générés → « Envoyer les billets sur WhatsApp ».
+Places gardées 24 h ; « Prolonger » et « Annuler » disponibles.
+
+## Adaptation à l'hébergement gratuit Render
+- Affiche stockée en base (table `event_posters`), servie par `/events/{id}/affiche`.
+- QR codes générés à la volée (plus aucun fichier écrit sur le disque).
+- Places des commandes expirées libérées à l'ouverture du site / de l'admin et à chaque nouvelle commande (plus besoin de planificateur).
+- Un email qui échoue ne bloque jamais une commande ni une confirmation de paiement.
+- `php artisan admin:create` : crée le premier admin depuis `ADMIN_EMAIL` / `ADMIN_PASSWORD`, sans jamais écraser un mot de passe.
+- `docker/start-web.sh` lance les migrations et la création de l'admin au démarrage (pas de Pre-Deploy en gratuit).
+- Guide de déploiement : `DEPLOIEMENT-RENDER.md`.

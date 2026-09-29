@@ -13,16 +13,15 @@ use Illuminate\Support\Str;
 
 class TicketService
 {
-    public function __construct(
-        private readonly QrCodeService $qrCodeService,
-    ) {}
-
     /**
      * Crée une commande + réservation temporaire (RM04, RM05).
      * Verrouille les lignes ticket_types pour éviter la survente en cas de requêtes concurrentes.
      */
     public function createReservation(Event $event, array $customer, array $items): Order
     {
+        // Les places des commandes expirées redeviennent disponibles avant de réserver les nouvelles.
+        $this->releaseExpiredOrders();
+
         $this->guardAgainstStockHoarding($customer['phone'] ?? null);
 
         return DB::transaction(function () use ($event, $customer, $items) {
@@ -107,7 +106,6 @@ class TicketService
                         'generated_at' => now(),
                     ]);
 
-                    $this->qrCodeService->generateForTicket($ticket);
                     $counter++;
                 }
             }
@@ -116,7 +114,12 @@ class TicketService
         // Envoi email en asynchrone (hors transaction pour ne pas bloquer le commit).
         // L'email est facultatif : sans adresse, l'admin envoie le lien des billets par WhatsApp.
         if ($order->customer_email) {
-            \App\Jobs\SendTicketEmailJob::dispatch($order->fresh('tickets'));
+            try {
+                \App\Jobs\SendTicketEmailJob::dispatch($order->fresh('tickets'));
+            } catch (\Throwable $e) {
+                // Avec QUEUE_CONNECTION=sync, un email qui échoue ne doit jamais empêcher la confirmation du paiement.
+                report($e);
+            }
         }
     }
 
@@ -177,6 +180,29 @@ class TicketService
             throw new \RuntimeException(
                 "Vous avez déjà {$max} commandes en attente avec ce numéro. Finalisez-les sur WhatsApp, ou contactez-nous pour en ajouter."
             );
+        }
+    }
+
+    /** Libère toutes les commandes en attente dont le délai est dépassé. Retourne leur nombre. */
+    public function releaseExpiredOrders(): int
+    {
+        $orders = Order::where('status', 'pending')->where('expires_at', '<=', now())->get();
+
+        foreach ($orders as $order) {
+            $this->releaseExpiredOrder($order);
+        }
+
+        return $orders->count();
+    }
+
+    /**
+     * Même chose, au plus une fois par minute : appelée à l'ouverture des pages, pour que ça fonctionne
+     * même sans planificateur (hébergement gratuit, où rien ne tourne en arrière-plan).
+     */
+    public function releaseExpiredOrdersThrottled(): void
+    {
+        if (\Illuminate\Support\Facades\Cache::add('orders:release-expired', true, 60)) {
+            $this->releaseExpiredOrders();
         }
     }
 

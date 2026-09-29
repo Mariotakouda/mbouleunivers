@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEventRequest;
 use App\Models\Event;
+use App\Models\EventPoster;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -13,7 +15,7 @@ class EventController extends Controller
 {
     public function index(): View
     {
-        $events = Event::latest()->paginate(20);
+        $events = Event::with('posterMeta')->latest()->paginate(20);
 
         return view('admin.events.index', compact('events'));
     }
@@ -26,14 +28,15 @@ class EventController extends Controller
     public function store(StoreEventRequest $request): RedirectResponse
     {
         $data = $request->validated();
-
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('events', 'public');
-        }
+        unset($data['image']);
 
         $data['user_id'] = $request->user()->id;
 
-        Event::create($data);
+        $event = Event::create($data);
+
+        if ($request->hasFile('image')) {
+            $this->savePoster($event, $request->file('image'));
+        }
 
         return redirect()->route('admin.events.index')->with('success', 'Spectacle créé.');
     }
@@ -53,15 +56,13 @@ class EventController extends Controller
     public function update(StoreEventRequest $request, Event $event): RedirectResponse
     {
         $data = $request->validated();
-
-        if ($request->hasFile('image')) {
-            if ($event->image) {
-                Storage::disk('public')->delete($event->image);
-            }
-            $data['image'] = $request->file('image')->store('events', 'public');
-        }
+        unset($data['image']);
 
         $event->update($data);
+
+        if ($request->hasFile('image')) {
+            $this->savePoster($event, $request->file('image'));
+        }
 
         return redirect()->route('admin.events.index')->with('success', 'Spectacle mis à jour.');
     }
@@ -75,5 +76,22 @@ class EventController extends Controller
         $event->delete();
 
         return redirect()->route('admin.events.index')->with('success', 'Spectacle supprimé.');
+    }
+
+    /** Enregistre l'affiche en base ; supprime l'éventuelle ancienne affiche stockée sur disque. */
+    private function savePoster(Event $event, UploadedFile $file): void
+    {
+        EventPoster::updateOrCreate(
+            ['event_id' => $event->id],
+            ['mime' => $file->getMimeType() ?: 'image/jpeg', 'data' => base64_encode($file->get())]
+        );
+
+        if ($event->image) {
+            Storage::disk('public')->delete($event->image);
+            $event->forceFill(['image' => null])->save();
+        }
+
+        $event->unsetRelation('poster');
+        $event->unsetRelation('posterMeta');
     }
 }

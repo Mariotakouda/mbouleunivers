@@ -1,34 +1,20 @@
-# Blueprint Render — voir https://render.com/docs/blueprint-spec
+# Blueprint Render — PLAN GRATUIT — voir https://render.com/docs/blueprint-spec
 # Sur render.com : New > Blueprint > sélectionner ce dépôt.
 #
-# 3 services payants (plan Starter) sont créés : le site, la file d'attente/planificateur,
-# et la base de données. C'est un choix assumé : le plan gratuit de Render redémarre le
-# disque à chaque déploiement et supprime la base au bout de 30 jours (voir la discussion
-# avec l'assistant) — inutilisable pour un site qui encaisse de vrais paiements.
-
-databases:
-  - name: univermboule-db
-    databaseName: univermboule
-    user: univermboule
-    plan: starter
-    postgresMajorVersion: "16"
+# Un seul service (le site). Limites du plan gratuit à connaître :
+#  - le site s'endort après ~15 min sans visite (le 1er visiteur attend ~1 min) ;
+#  - le disque est effacé à chaque redémarrage : c'est pourquoi l'affiche et les QR codes sont
+#    gérés sans fichier (voir MISE-A-JOUR-WHATSAPP.md) ;
+#  - la base Postgres gratuite de Render expire au bout de 30 jours : on utilise une base
+#    externe gratuite (ex. Neon) dont on colle l'adresse dans DB_URL.
 
 services:
-  # --- Le site (public + admin + agent) ---
   - type: web
     name: univermboule
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
-    healthCheckPath: /
-    # Exécuté avant chaque mise en ligne, sur UNE SEULE instance (pas de risque de migration
-    # lancée deux fois en parallèle). Nécessite le plan Starter (indisponible en gratuit).
-    preDeployCommand: php artisan migrate --force
-    disk:
-      name: univermboule-uploads
-      # Affiches de spectacles et QR codes des billets : doivent survivre aux redéploiements.
-      mountPath: /app/storage/app/public
-      sizeGB: 1
+    plan: free
+    healthCheckPath: /up
     envVars:
       - key: APP_ENV
         value: production
@@ -36,109 +22,47 @@ services:
         value: "false"
       - key: APP_KEY
         generateValue: true
-      # À corriger si vous renommez le service (l'adresse Render suit le "name" ci-dessus).
+      # À corriger si Render vous attribue une autre adresse que celle-ci.
       - key: APP_URL
         value: https://univermboule.onrender.com
+      - key: APP_LOCALE
+        value: fr
+      # Adresse de connexion de la base externe (Neon), à coller dans le tableau de bord Render.
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_URL
-        fromDatabase:
-          name: univermboule-db
-          property: connectionString
+        sync: false
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
         value: database
+      # Pas de worker en gratuit : les tâches s'exécutent directement.
       - key: QUEUE_CONNECTION
-        value: database
-      - key: FILESYSTEM_DISK
-        value: public
+        value: sync
       - key: LOG_CHANNEL
-        value: stack
+        value: stderr
       - key: LOG_LEVEL
         value: error
-      # --- Commande via WhatsApp (aucun agrégateur de paiement) ---
-      # Numéro qui reçoit les commandes des clients, format +22890000000
+      # --- Premier administrateur (créé au premier démarrage s'il n'existe pas encore) ---
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # --- Commande via WhatsApp ---
       - key: SUPPORT_WHATSAPP
         sync: false
-      # Durée (en heures) pendant laquelle les places sont gardées en attendant le paiement
       - key: ORDER_HOLD_HOURS
         value: "24"
-      # Email prévenu à chaque nouvelle commande (facultatif : laissez vide pour désactiver)
-      - key: ADMIN_NOTIFY_EMAIL
+      - key: PAYMENT_FLOOZ_NUMBER
         sync: false
-      # --- Envoi des emails de billets : à remplacer par vos identifiants SMTP ---
+      - key: PAYMENT_TMONEY_NUMBER
+        sync: false
+      - key: PAYMENT_ACCOUNT_NAME
+        sync: false
+      # --- Emails : désactivés par défaut (WhatsApp suffit). Renseignez un SMTP plus tard si besoin. ---
       - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_HOST
-        sync: false
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_USERNAME
-        sync: false
-      - key: MAIL_PASSWORD
-        sync: false
-      - key: MAIL_ENCRYPTION
-        value: tls
+        value: log
       - key: MAIL_FROM_ADDRESS
-        sync: false
-      - key: MAIL_FROM_NAME
-        value: "Univers 2 M'boulè"
-
-  # --- Envoi des emails en arrière-plan + libération des places non payées ---
-  # Un seul service pour les deux tâches, afin de limiter les coûts : la même image Docker
-  # que le site, mais lance queue:work et schedule:work au lieu du serveur web.
-  - type: worker
-    name: univermboule-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerCommand: sh -c "php artisan schedule:work & exec php artisan queue:work --tries=3 --max-time=3600"
-    plan: starter
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: APP_DEBUG
-        value: "false"
-      - key: APP_KEY
-        # Reprend automatiquement la clé générée pour le service "univermboule" ci-dessus :
-        # les deux services DOIVENT utiliser la même clé (sessions, données chiffrées).
-        fromService:
-          name: univermboule
-          type: web
-          envVarKey: APP_KEY
-      - key: APP_URL
-        value: https://univermboule.onrender.com
-      - key: DB_CONNECTION
-        value: pgsql
-      - key: DB_URL
-        fromDatabase:
-          name: univermboule-db
-          property: connectionString
-      - key: SESSION_DRIVER
-        value: database
-      - key: CACHE_STORE
-        value: database
-      - key: QUEUE_CONNECTION
-        value: database
-      - key: FILESYSTEM_DISK
-        value: public
-      - key: LOG_CHANNEL
-        value: stack
-      - key: LOG_LEVEL
-        value: error
-      - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_HOST
-        sync: false
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_USERNAME
-        sync: false
-      - key: MAIL_PASSWORD
-        sync: false
-      - key: MAIL_ENCRYPTION
-        value: tls
-      - key: MAIL_FROM_ADDRESS
-        sync: false
+        value: no-reply@universmboule.tg
       - key: MAIL_FROM_NAME
         value: "Univers 2 M'boulè"

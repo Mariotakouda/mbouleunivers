@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Order;
 use App\Services\TicketService;
 use Illuminate\Console\Command;
 
@@ -13,16 +12,9 @@ class ExpireReservations extends Command
 
     public function handle(TicketService $ticketService): int
     {
-        $expiredOrders = Order::where('status', 'pending')
-            ->where('expires_at', '<=', now())
-            ->get();
+        $count = $ticketService->releaseExpiredOrders();
 
-        foreach ($expiredOrders as $order) {
-            $ticketService->releaseExpiredOrder($order);
-            $this->info("Commande {$order->reference} expirée et libérée.");
-        }
-
-        $this->info("{$expiredOrders->count()} commande(s) traitée(s).");
+        $this->info("{$count} commande(s) expirée(s) et libérée(s).");
 
         return self::SUCCESS;
     }

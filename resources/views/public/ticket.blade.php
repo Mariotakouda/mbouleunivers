@@ -49,7 +49,7 @@
                         </dl>
 
                         <div class="flex flex-col items-center justify-center">
-                            <img src="{{ asset('storage/qrcodes/' . $ticket->qr_code . '.svg') }}"
+                            <img src="{{ app(\App\Services\QrCodeService::class)->dataUri($ticket) }}"
                                  alt="QR code du billet {{ $ticket->ticket_number }}"
                                  class="size-44 rounded-xl border border-bord p-2">
                             <p class="mt-2 text-xs tracking-wide text-sourdine">{{ $ticket->ticket_number }}</p>

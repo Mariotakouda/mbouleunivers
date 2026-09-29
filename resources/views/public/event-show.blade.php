@@ -2,7 +2,7 @@
 <x-layouts.app
     :title="$event->title"
     :description="\Illuminate\Support\Str::limit($event->description, 155)"
-    :image="$event->image ? url(Storage::url($event->image)) : null"
+    :image="$event->posterUrl() ? url($event->posterUrl()) : null"
     :back="route('home')"
     backLabel="Accueil"
     :sticky="! $over">
@@ -50,8 +50,8 @@
 
             {{-- Affiche et description --}}
             <div class="md:col-start-1 md:row-start-2">
-                @if ($event->image)
-                    <img src="{{ Storage::url($event->image) }}" alt="Affiche : {{ $event->title }}" class="w-full max-w-md rounded-2xl ring-1 ring-bord">
+                @if ($event->hasPoster())
+                    <img src="{{ $event->posterUrl() }}" alt="Affiche : {{ $event->title }}" class="w-full max-w-md rounded-2xl ring-1 ring-bord">
                 @endif
 
                 <div class="mt-8 max-w-prose">

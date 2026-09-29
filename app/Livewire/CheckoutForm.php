@@ -127,7 +127,11 @@ class CheckoutForm extends Component
         RateLimiter::hit($throttleKey, 600);
 
         if ($email = config('ticketing.notify_email')) {
-            Notification::route('mail', $email)->notify(new NewOrderNotification($order));
+            try {
+                Notification::route('mail', $email)->notify(new NewOrderNotification($order));
+            } catch (\Throwable $e) {
+                report($e); // un email en panne ne doit jamais bloquer la commande du client
+            }
         }
 
         session()->forget('checkout_items');

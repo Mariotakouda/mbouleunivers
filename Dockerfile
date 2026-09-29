@@ -24,7 +24,6 @@ RUN composer install --no-dev --no-interaction --optimize-autoloader \
     && chmod +x docker/start-web.sh \
     && chown -R application:application storage bootstrap/cache
 
-# Render exécute les migrations à chaque déploiement via la "Pre-Deploy Command" (voir
-# render.yaml). Ce CMD ne fait que démarrer le serveur web une fois le déploiement prêt ;
-# docker/start-web.sh corrige d'abord les droits sur le disque persistant.
+# Plan gratuit Render : pas de "Pre-Deploy Command", donc docker/start-web.sh lance les
+# migrations, crée le premier administrateur puis démarre le serveur web.
 CMD ["docker/start-web.sh"]

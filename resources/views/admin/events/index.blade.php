@@ -17,8 +17,8 @@
                             <tr>
                                 <td>
                                     <a href="{{ route('admin.events.show', $event) }}" class="flex items-center gap-3 font-semibold hover:underline">
-                                        @if ($event->image)
-                                            <img src="{{ Storage::url($event->image) }}" alt="" class="size-12 shrink-0 rounded-lg object-cover ring-1 ring-bord">
+                                        @if ($event->hasPoster())
+                                            <img src="{{ $event->posterUrl() }}" alt="" class="size-12 shrink-0 rounded-lg object-cover ring-1 ring-bord">
                                         @else
                                             <span class="grid size-12 shrink-0 place-items-center rounded-lg bg-craie text-sourdine ring-1 ring-bord"><x-ui.icon name="mic" class="size-5" /></span>
                                         @endif

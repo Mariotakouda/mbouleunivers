@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 class Event extends Model
 {
@@ -33,6 +35,32 @@ class Event extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function poster(): HasOne
+    {
+        return $this->hasOne(EventPoster::class);
+    }
+
+    /** Version légère (sans les données de l'image) pour connaître l'existence et la date de l'affiche. */
+    public function posterMeta(): HasOne
+    {
+        return $this->hasOne(EventPoster::class)->select(['id', 'event_id', 'updated_at']);
+    }
+
+    /** URL de l'affiche (stockée en base), ou ancienne affiche sur disque, ou null. */
+    public function posterUrl(): ?string
+    {
+        if ($meta = $this->posterMeta) {
+            return route('events.poster', ['event' => $this->id, 'v' => $meta->updated_at?->timestamp]);
+        }
+
+        return $this->image ? Storage::url($this->image) : null;
+    }
+
+    public function hasPoster(): bool
+    {
+        return $this->posterUrl() !== null;
     }
 
     public function isPublished(): bool

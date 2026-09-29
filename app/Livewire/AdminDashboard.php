@@ -47,6 +47,8 @@ class AdminDashboard extends Component
 
     public function render()
     {
+        app(\App\Services\TicketService::class)->releaseExpiredOrdersThrottled();
+
         return view('livewire.admin-dashboard', [
             'stats' => $this->stats,
             'recentOrders' => $this->recentOrders,

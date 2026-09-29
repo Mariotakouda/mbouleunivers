@@ -23,6 +23,13 @@ return [
     // Email de l'organisateur prévenu à chaque nouvelle commande (facultatif).
     'notify_email' => env('ADMIN_NOTIFY_EMAIL'),
 
+    // Numéros où le client envoie son paiement Mobile Money (facultatif : affichés dans le message d'accueil WhatsApp).
+    'payment_numbers' => [
+        'flooz' => env('PAYMENT_FLOOZ_NUMBER'),
+        'tmoney' => env('PAYMENT_TMONEY_NUMBER'),
+    ],
+    'payment_account_name' => env('PAYMENT_ACCOUNT_NAME'),
+
     // Modes d'encaissement proposés à l'admin au moment de confirmer un paiement.
     'payment_methods' => [
         'flooz' => 'Flooz (Moov Money)',

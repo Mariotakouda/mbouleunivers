@@ -12,7 +12,7 @@
 
 <x-layouts.app
     :description="$event ? Str::limit($event->description, 155) : null"
-    :image="$event?->image ? url(Storage::url($event->image)) : null"
+    :image="$event?->posterUrl() ? url($event->posterUrl()) : null"
     :sticky="$canBuy">
 
 @if (! $event)
@@ -63,8 +63,8 @@
             </div>
 
             <div>
-                @if ($event->image)
-                    <img src="{{ Storage::url($event->image) }}" alt="Affiche : {{ $event->title }}"
+                @if ($event->hasPoster())
+                    <img src="{{ $event->posterUrl() }}" alt="Affiche : {{ $event->title }}"
                          class="mx-auto max-h-[34rem] w-auto rounded-3xl object-cover shadow-2xl shadow-black/40 ring-1 ring-white/15">
                 @else
                     <div class="relative mx-auto w-full max-w-sm rounded-[2rem] border border-white/15 bg-white/[0.06] p-8">

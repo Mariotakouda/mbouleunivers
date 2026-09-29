@@ -33,8 +33,8 @@
             </dl>
         </div>
 
-        @if ($event->image)
-            <img src="{{ Storage::url($event->image) }}" alt="Affiche : {{ $event->title }}" class="w-full max-w-xs rounded-2xl ring-1 ring-bord lg:max-w-none">
+        @if ($event->hasPoster())
+            <img src="{{ $event->posterUrl() }}" alt="Affiche : {{ $event->title }}" class="w-full max-w-xs rounded-2xl ring-1 ring-bord lg:max-w-none">
         @endif
     </div>
 

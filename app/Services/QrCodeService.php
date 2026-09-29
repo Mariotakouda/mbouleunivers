@@ -5,30 +5,17 @@ namespace App\Services;
 use App\Models\Ticket;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
-use Illuminate\Support\Facades\Storage;
 
 class QrCodeService
 {
     /**
-     * Génère l'image QR Code et la stocke sur le disque public.
+     * QR code du billet, généré à la volée sous forme d'image « data: » (SVG en base64).
+     * Rien n'est stocké sur le disque : sur un hébergeur gratuit, le disque est effacé à chaque redémarrage.
      * Le QR ne contient PAS d'informations personnelles (juste un identifiant opaque).
      */
-    public function generateForTicket(Ticket $ticket): string
+    public function dataUri(Ticket $ticket): string
     {
-        $path = "qrcodes/{$ticket->qr_code}.svg";
-
-        // outputBase64 = false : on veut du vrai SVG dans le fichier, pas une chaîne « data:image/svg+xml;base64,… ».
-        $qrCode = new QRCode(new QROptions(['outputBase64' => false]));
-        $svg = $qrCode->render($ticket->qr_code);
-
-        Storage::disk('public')->put($path, $svg);
-
-        return $path;
-    }
-
-    public function urlForTicket(Ticket $ticket): string
-    {
-        return Storage::disk('public')->url("qrcodes/{$ticket->qr_code}.svg");
+        return (new QRCode(new QROptions(['outputBase64' => true])))->render($ticket->qr_code);
     }
 
     /**

@@ -56,7 +56,7 @@
                             <p class="value">{{ $event->venue }}@if ($event->address)<br><span style="font-weight: normal; color: #625e80; font-size: 12px;">{{ $event->address }}</span>@endif</p>
                         </td>
                         <td class="qr-cell">
-                            <img class="qr" src="{{ storage_path('app/public/qrcodes/' . $ticket->qr_code . '.svg') }}" width="180" height="180" alt="QR code">
+                            <img class="qr" src="{{ app(\App\Services\QrCodeService::class)->dataUri($ticket) }}" width="180" height="180" alt="QR code">
                             <p class="code">{{ $ticket->ticket_number }}</p>
                         </td>
                     </tr>

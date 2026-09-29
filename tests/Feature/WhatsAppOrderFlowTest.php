@@ -140,6 +140,38 @@ class WhatsAppOrderFlowTest extends TestCase
                   '25 000 FCFA', 'Kofi Mensah', '+228 90 12 34 56', 'kofi@test.tg', 'Places côte à côte'] as $expected) {
             $this->assertStringContainsString($expected, $message);
         }
+
+        // Date en français avec majuscule initiale, et heure.
+        $this->assertMatchesRegularExpression('/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche) \d{1,2} \p{L}+ \d{4} à 19h00$/mu', explode("\n", $message)[4]);
+    }
+
+    public function test_message_to_customer_includes_payment_numbers_when_configured(): void
+    {
+        $order = $this->placeOrder();
+        $wa = app(WhatsAppService::class);
+
+        $plain = $wa->messageToCustomer($order);
+        $this->assertStringContainsString('Flooz ou T-Money', $plain);
+        $this->assertStringContainsString('25 000 FCFA', $plain);
+
+        config([
+            'ticketing.payment_numbers' => ['flooz' => '91 11 22 33', 'tmoney' => '90 44 55 66'],
+            'ticketing.payment_account_name' => 'Kokou Agbeko',
+        ]);
+        $full = $wa->messageToCustomer($order);
+        $this->assertStringContainsString('Flooz (Moov Money) : +228 91 11 22 33 — au nom de Kokou Agbeko', $full);
+        $this->assertStringContainsString('T-Money (Togocom) : +228 90 44 55 66', $full);
+        $this->assertStringContainsString($order->reference, $full);
+    }
+
+    public function test_tickets_message_contains_the_tickets_link(): void
+    {
+        $order = $this->placeOrder();
+
+        $message = app(WhatsAppService::class)->ticketsMessage($order);
+
+        $this->assertStringContainsString(route('ticket.show', $order->reference), $message);
+        $this->assertStringContainsString('est confirmée', $message);
     }
 
     public function test_tracking_page_and_whatsapp_redirect_mark_the_click(): void
