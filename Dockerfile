@@ -11,7 +11,11 @@ WORKDIR /app
 # Outils manquants dans l'image de base : Node (pour compiler les assets) et les
 # extensions PHP nécessaires à PostgreSQL et aux QR codes/PDF des billets (gd).
 RUN apk add --no-cache nodejs npm \
-    && docker-php-ext-install pdo_pgsql pgsql gd
+    && apk add --no-cache postgresql-dev libpng-dev libjpeg-turbo-dev freetype-dev \
+    && ( php -m | grep -qi '^pdo_pgsql$' || docker-php-ext-install pdo_pgsql pgsql ) \
+    && ( php -m | grep -qi '^gd$' || ( docker-php-ext-configure gd --with-freetype --with-jpeg && docker-php-ext-install gd ) ) \
+    && php -m | grep -i pdo_pgsql \
+    && php -m | grep -i '^gd$'
 
 COPY . .
 
