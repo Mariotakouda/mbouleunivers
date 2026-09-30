@@ -29,5 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
-    })->create();
+    // TEMPORAIRE : à retirer une fois le problème trouvé
+    $exceptions->render(function (\Throwable $e, $request) {
+        if (! env('SHOW_ERRORS')
+            || $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+            || $e instanceof \Illuminate\Validation\ValidationException
+            || $e instanceof \Illuminate\Auth\AuthenticationException) {
+            return null;
+        }
+        return response('<pre style="white-space:pre-wrap">'
+            .e(get_class($e).' : '.$e->getMessage().' — '.basename($e->getFile()).':'.$e->getLine())
+            .'</pre>', 500);
+    });
+})->create();
